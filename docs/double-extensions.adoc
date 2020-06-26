@@ -1,0 +1,118 @@
+== Phishing attacks based on files with double-extensions
+
+=== Attack technique
+
+Many successful viruses that rely on social engineering techniques, worked similarly.
+
+
+The end-user received an email, with an attachment
+The email alerted the user that the attachment was somehow important (like a bank xxx) or interesting (like personal files)
+As the attachment seems to be a legit file, like text, pdf or image, because of the icon or file extension, the seems to be no harm opening it
+
+In reality, the attachment is an executable type.
+
+The simplest way to conceal is to use a double extension, like `.txt.exe`, because windows will hide `.exe`.
+
+
+This is, unfortunately, the default behavior of Windows File Manager Explorer, but can be changed.
+
+=== Always show file extensions
+
+It is possible to change the behavior of the default file manager to always show file extensions.
+
+This increases the possibilities that the user recognizes that the file type is, in reality, an executable, or that it has a double extension, which is uncommon and might thus be a phishing attack.
+
+----
+  reg load HKLM\defaultuser C:\Users\Default\NTUSER.DAT
+  $explorer_advs = @( # FIXME: missing other already existing users
+    "HKLM:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",             # system setting
+    "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",             # current user
+    "HKLM:\defaultuser\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"  # default for new users
+  )
+  foreach ($explorer_adv in $explorer_advs) {
+    New-Item -Force $explorer_adv | Out-Null
+    New-ItemProperty -path $explorer_adv -Name "HideFileExt" -Value 0 -Force
+  }
+  [gc]::Collect()
+  reg unload HKLM\defaultuser
+----
+
+Unfortunately, it is no possible to change the behavior for showing icons.
+
+It would be, for example, better, if executable files always showed some mark, to make it visually clear, that executing such a file may have side-effects.
+
+=== Disable execution of common double file-extensions
+
+Even if the file extension is always shown in Explorer, the mail client might not show it.
+
+Since at least Windows XP it is possible to create blacklists of files, that should never get executed.
+It is, for example, possible to tell Windows to never execute a file that ends in `.doc.exe`.
+
+While there might be legitimate use-cases for such files, the file extensions used in phishing attacks are relatively constrained, thus false positives should not be an issue.
+
+False negatives on the other hand are a security issue, as attackers can create as many extensions as they want, like `.txt2.exe`.
+An unaware user might not notice the difference between `.txt` and `.txt2` and execute the file by double-clicking it.
+
+While the HOME editions of Windows (at least between Windows XP and Windows 10) always lacked gpedit, the program for editing system policies, it is possible to edit them by changing directly the registry settings.
+Thus the most portable approach is to edit the registry, as it will work on any Windows version.
+
+A snippet taken from https://github.com/fekir/INIMA[INIMA], for disabling common double file-extensions is
+
+----
+  $policies_codeid="HKLM:\SOFTWARE\Policies\Microsoft\Windows\Safer\CodeIdentifiers\";
+  New-ItemProperty -Path $policies_codeid -Name "authenticodeenabled" -Value 0 -Force | Out-Null
+  New-ItemProperty -Path $policies_codeid -Name "DefaultLevel" -Value 262144 | Out-Null
+  New-ItemProperty -Path $policies_codeid -Name "PolicyScope" -Value 0 | Out-Null
+  New-ItemProperty -Path $policies_codeid -Name "TransparentEnabled" -Value 1 | Out-Null
+  $executabletypes=@( #gpedit, Computer Configuration, Windows Settings, Security Settings, Software restriction Policies, Designated File types
+    , "ade", "adp", "bas", "bat", "chm", "cmd", "com", "cpl", "crt", "diagcab"
+    , "exe", "hlp", "hta", "inf", "ins", "isp", "mdb", "mde", "msc", "msi"
+    , "msp", "mst", "ocx", "pcd", "pif", "reg", "scr", "shs", "url", "vb", "vsix"
+    , "wsc"
+    # test/check, not listed like the others, but also get "executed" on double-click
+    , "application", "gadget", "vbs", "vbe", "js", "jse", "ws", "wsf"
+    , "wsh", "ps1", "ps1xml", "ps2" , "ps2xml", "psc1", "psc2"
+    , "msh", "msh1", "msh2", "mshxml", "msh1xml", "msh2xml", "scf", "rgs"
+  )
+  $commonextensions=@(
+    # documents
+    , "doc?", "pdf", "txt", "?htm?", "ppt?", "xls?",
+    # multimedia
+    , "mp?", "jp?g", "png"
+    # archives
+    , "zip", "rar"
+  )
+  New-ItemProperty -Path $policies_codeid -Name "ExecutableTypes" -PropertyType MultiString -Value $executabletypes | Out-Null
+  $policies_explorer="HKLM:\SOFTWARE\Policies\Microsoft\Windows\Explorer";
+  CondNewItem $policies_explorer | Out-Null
+  #Set-ItemProperty -Path $policies_explorer -Name "AdminInfoUrl" -Value "https://github.com/fekir/INIMA" | Out-Null
+  New-Item "C:\policies.txt" -ItemType File -Value "Policies created with INIMA`n`nSee https://github.com/fekir/INIMA for more information about the project.`n";
+  # FIXME: add only if not already set, or copy value to our policies.txt
+  Set-ItemProperty -Path $policies_explorer -Name "AdminInfoUrl" -Value "C:\policies.txt" | Out-Null
+
+  foreach ($cex in $commonextensions) {
+    foreach ($ext in $executabletypes) {
+      $guid = "{"+(New-Guid).guid+"}"
+      $path = "$policies_codeid\0\Paths\$guid"; # disallowed=0, Unrestricted=262144
+      New-Item $path -Force | Out-Null
+      New-ItemProperty -Path $path -Name "Description" -Value "INIMA" | Out-Null
+      New-ItemProperty -Path $path -Name "SaferFlags" -Value 0 | Out-Null
+      New-ItemProperty -Path $path -Name "Name" -Value "name" | Out-Null
+      New-ItemProperty -Path $path -Name "ItemData" -Value "*.$cex.$ext" | Out-Null
+    }
+  }
+----
+
+=== Disable execution from Download folder
+
+Most files downloaded from the browser or the mail client land in the temporary folder or download folder.
+
+While many programs (especially setups) rely on being able to execute other programs from the temporary folder, there is rarely a need to execute a program from the download folder, and in case there is such a need, the file can be moved to another folder.
+
+It is also a plausible approach to disable execution from the temporary folder and instruct single programs either to use another temporary folder or disable the restriction temporarily.
+As there is no automated approach that would work reasonably well, it might not be recommended for non-technical users.
+
+
+== Conclusion
+
+With those settings, most attacks would not take place, and the probability that the users notice something is going on increases.

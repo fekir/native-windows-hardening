@@ -1,0 +1,24 @@
+== Official mitigations
+
+=== EMET
+
+https://en.wikipedia.org/wiki/Enhanced_Mitigation_Experience_Toolkit[EMET] was a security solution from Microsoft.
+It did not need signature updates to work and it did not try to predict malicious behavior
+
+It did not rely on the user, it was a fire-and-forget solution, that https://msrc-blog.microsoft.com/2010/12/08/on-the-effectiveness-of-dep-and-aslr/
+[prevented many bug exploits].
+
+
+EMET gave the user the possibility to enable ASLR, DEP, and SEHOP, and also change the settings on a program basis.
+
+
+As Windows 10 Build 1709, the functionality of EMET is available as built-in capability.
+The relevant configuration switches can be reached from the Windows Defender Security Center.
+
+Also, all mitigation techniques are active by default, so there is nothing do to for the user unless using an older operating system.
+In that case, EMET can still get downloaded from https://www.microsoft.com/en-us/download/details.aspx?id=54264[Microsoft], even if it is not maintained anymore.
+
+
+When EMET was first introduced, many programs had a problem with it.
+As it became more mainstream, and especially now that most mitigation techniques are enabled by default, all software that got some update in the last years has been made compatible.
+

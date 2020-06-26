@@ -1,0 +1,59 @@
+= What does native mean?
+
+There are many products for hardening a Microsoft Windows System.
+
+Unfortunately many rely on installing third-party programs and having processes running all the time in background, like an antivirus.
+
+Also mixing different security suites can have unintended side-effects, because they might use different approaches, or might be incompatible, like using two antiviruses on the same computer.
+
+Ideally, and this is what native means for me, the ideal solution
+
+  * Does not require external programs
+  * Does not need any programs running in the background all the time
+  * has no performance drawbacks
+  * every setting and side-effects are explained/documented
+
+Last, but not least, the approach is to be proactive, i.e. avoiding infecting the system, instead of repairing it.
+
+Of course, third party software can still be used, and incompatibilities might arise.
+It should be easier to find the culprit, as there are fewer resource contentions, as there are no running programs.
+
+There are no known incompatibilities between all enlisted hardening techniques unless stated otherwise.
+
+== Why does this repo exist
+
+I initiated this repository after changing the default file type association of scripts and executables.
+
+The system is usable, there are some drawbacks and issues, but most of them can be resolved.
+
+On the other hand, some programs do not work correctly when changing these settings, and I needed a place where to document those, and eventually how to circumvent the issues.
+
+So this repo is mainly for collecting information about this novel approach, in particular
+
+  * what programs break
+  * if a program gets fixed (which version and so on)
+  * if the program can be made working again without an official fix/how to circumvent eventual bugs
+  * what components of windows are problematic
+  * point authors of offending programs where to find more information
+
+Other resources, like snippets of code or script for helping to debug, changing hardening settings, and so on, might also be added to this repository.
+
+== Want to participate?
+
+My usage of the Windows operating system is probably completely different than yours.
+
+The best way to help is making bug reports to programs that do not work correctly (even better would be to fix them), and testing as many programs/workflows as possible.
+It would be nice to open a ticket here so that other people can track those pieces of information, as most closed-source software does not have an open/public bug tracker.
+
+Of course, if there are ways to avoid issues with specific tasks or programs, it would be great to add that information to the repository too.
+
+Also, as I do not always use Windows for work, I might not have noticed some major drawbacks that currently make some approaches impossible to use in practice.
+
+
+== Other informations
+
+Mostly WIP and links
+
+  * link:/docs/double-extensions.adoc[double extensions]
+  * link:/docs/file-associations.adoc[file associations], the main reason I've created this repository
+  * link:/docs/official-mitigations.adoc[official mitigations]

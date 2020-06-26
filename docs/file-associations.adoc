@@ -1,0 +1,82 @@
+Double-clicking a file has different effects depending on the file type.
+
+Normally, an associated program is opened for showing the content of the file to the end-user.
+
+But for `.bat`, `.reg` and other text file types, Windows parses and executes the content of the file.
+
+This can change system settings and has been used multiple times for infecting systems.
+
+== Textual files (scripts)
+
+File extensions like `.bat`, `.cmd`, `.js`, `.reg` and others are not executable (they are in fact text files), but get parsed and executed by Windows when the user double-clicks them.
+
+This is, in some situations, the desired effect, but in other scenarios, as a user, I prefer to see the content.
+
+Executing the files also poses a security risk, especially because some file extensions are obscure, and the icons shown by Explorer (like `.js`) show an icon that resembles a `.txt` file, and because most users expect to open a document while double-clicking on it (unless they are aware they are opening a program).
+
+While every user can change the default file associations for those file types, it is also possible to change the default association system-wide.
+As it is foreseeable that some users might want to execute those file types without opening a command prompt like on a "normal" Windows installation, it is possible to add a new menu entry that gives the possibility to execute the file as before.
+
+----
+$editor = "C:\Windows\System32\notepad.exe"
+$filetypes = @("batfile", "regfile", "JSFile", "htafile", "WSFFile", "VBSFile", "VBEFile");
+foreach ($filetype in $filetypes) {
+  $key_run = (Join-Path (Join-Path Registry::HKEY_CLASSES_ROOT $filetype) shell\Run);
+  if (Test-Path $key_run) {
+    continue;
+  }
+  $key_open = (Join-Path (Join-Path Registry::HKEY_CLASSES_ROOT $filetype) shell\open);
+  Rename-Item -Path "$key_open" -NewName "Run";
+  $key_open_command = (Join-Path $key_open command);
+  New-Item -Force $key_open_command;
+  Set-ItemProperty -Path "$key_open_command" -name '(Default)' -Value "$editor `"%1`"";
+
+  $key_edit_command = (Join-Path (Join-Path Registry::HKEY_CLASSES_ROOT $filetype) shell\edit\command);
+  if (Test-Path $key_edit_command) {
+    Copy-Item -Path "$key_edit_command" -Destination "$key_open"
+  }
+}
+----
+
+A left-click on the file, and then `Run`, will execute the file as before, while a double-click will open it with notepad, or the program associated with the `open` menu entry.
+
+To execute those file types as before, for example from a command prompt, typing the filename is no longer sufficient, the "executor" needs to be invoked directly:
+
+  * `foo.bat` -> `cmd /c foo.bat`
+  * `foo.cmd` -> `cmd /c foo.cmd`
+  * `foo.ps1` -> `powershell -File foo.ps1`
+  * `foo.reg` -> `regedit foo.reg`
+  * `foo.msi` -> `msiexec /i foo.msi`
+
+=== Fixing problematic programs
+
+TLDR:
+Programs using `ShellExecute*` for executing files are broken, especially since file association can be changed without editing directly in the registry on a per-user basis (no administrator right are necessary).
+
+The correct solution is to use the `CreateProcess*` family of functions.
+
+More information can be found on https://fekir.info/post/windows-hardening-part2/[this hardening notes] and a couple of C examples can be found link:/src/createprocess[here] and link:/src/shellexecute[here]
+
+
+== Executable files
+
+As described in https://fekir.info/post/windows-hardening-part2/[this post], it is possible to change the file associations for `.exe` too.
+
+Unfortunately, some programs (and Windows components too) do not work correctly anymore, but the advantage of such change is tremendous, especially because executable types can also change the icon.
+This, together with the default settings of Windows to hide the file extension `.exe`, lead to many successful phishing attacks.
+
+If executables would not get executed on a double-click (same action used for opening files!) probably viruses like CryptoLocker (with the filename and the icon disguised as a PDF file) would not have successfully infected so many systems, as the user would have had a clear indication that something was not OK.
+
+=== Fixing problematic programs
+
+TLDR:
+Programs using `ShellExecute*` for executing files (`.exe` or `.cmd`, `.reg`, ....) are broken, especially since file association can be changed without editing directly in the registry.
+
+The correct solution is to use the `CreateProcess*` family of functions.
+
+More information can be found on https://fekir.info/post/windows-hardening-part2/[this hardening notes] and a couple of C examples can be found link:/src/createprocess[here] and link:/src/shellexecute[here]
+
+=== Fixing problematic programs
+
+TLDR:
+The same considerations for textual files also apply for executable files: use the `CreateProcess*` family of functions.
