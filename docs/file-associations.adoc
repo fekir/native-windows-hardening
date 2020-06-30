@@ -80,3 +80,9 @@ More information can be found on https://fekir.info/post/windows-hardening-part2
 
 TLDR:
 The same considerations for textual files also apply for executable files: use the `CreateProcess*` family of functions.
+
+
+=== Tests
+
+As changing file association for executable is currently the most xxx hardening settings, I've tested different programs.
+More informations can be link:file-associations-testing.adoc[found here].

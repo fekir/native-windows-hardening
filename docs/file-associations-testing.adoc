@@ -1,0 +1,444 @@
+As changing file association for executable is currently the most potential destructive hardening settings, I've tested different programs and Windows settings.
+
+The main test procedure was
+
+ * install Windows 10 in VirtualBox
+ * install guest additions
+ * enable execution of unsigned `.ps1` files
+ * start guest additions with task scheduler (just in case I need to reboot the machine)
+ * change file associations for `exefile` to notepad
+ * install the desired program and try to execute it
+ 
+If the installer did not work, reset the file association, install the program, then change file associations again.
+
+
+Notice:
+For simplicity, if possible and if it made sense, the virtual machine never had any connection to the internet during the installation process.
+The main reason was that I wanted to be the process to be as repeatable as possible, with no background processes modifying the system behind my back.
+As some programs might not have an offline installer, and as some Programs needs an internet connection to work, I have eventually attached the virtual machine to the internet during or after the installation process.
+
+
+
+
+
+=== Windows
+
+I've mainly tested install Windows 10 (x64, professional version 2004, md5sum of iso: 3cf9848ce17271e7c895366bdad98a8e) in VirtualBox.
+So some settings might vary between versions.
+
+==== Internet Explorer
+
+It seems to work correctly.
+
+When downloading files, Internet Explorer asks if it should save or run them.
+Running them opens them in notepad, so better save them and execute manually.
+
+==== Microsoft Edge (non Chrome based)
+
+As all shortcut do not point to a `.exe`, it starts normally with a double-click, and there is no `run` entry.
+The browser seems to work correctly.
+
+Just like Internet Explorer, running directly a downloaded file does not work.
+
+==== Microsoft Edge
+
+The (online) installer available at https://www.microsoft.com/en-us/edge does not work.
+At https://www.microsoft.com/en-us/edge/business/download it is possible to download an offline installer (`.msi`) which installs correctly.
+Otherwise one should wait for Windows Update.
+
+==== Start Menu
+
+"Run as administrator works", as most other options, but launching executables opens them in notepad (unless those are UWP programs, like the calculator).
+Contrary to File Explorer, the new entry "Run" does not appear anywhere.
+In Openshell the new menu entry appears, so it seems to be a good replacement.
+
+==== Settings
+
+Most settings pages, especially those with the Windows Metro interface, seems to work correctly.
+
+==== Startup Programs
+
+All registry entries, like entries under `HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Run\` do not work correctly anymore.
+
+Task scheduler and services continue to work correctly.
+
+
+----
+$key_autoruns = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run';
+Get-Item -Path $key_autoruns  |   Select-Object -ExpandProperty Property |ForEach-Object {
+  $value = $_;
+  $command = (Get-ItemProperty -Path $key_autoruns -Name $value).$value
+  Remove-ItemProperty -Path $key_autoruns -Name $value
+  $action = New-ScheduledTaskAction -Execute $command;
+  $trigger = New-ScheduledTaskTrigger -AtLogon;
+  $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries;
+  Register-ScheduledTask $value -Action $action -Trigger $trigger -Settings $settings;
+}
+----
+
+==== Task Manager
+
+"ctrl+shitf+esc" does not work, the task manager opens in notepad.
+"ctrl+alt+canc" works, but selecting "task manager" does not work.
+Changing TaskManager with procexp does not change anything.
+
+When the task manager is running, "File->Run New Task" does not work.
+Right-click on a running process, search online does not work.
+
+Otherwise, it is possible to check resource usages and kill processes.
+
+==== Windows Security
+
+`SecurityHealth` starts up during logon through a registry entry, thus it does not work.
+Apparently, this program is not relevant for the functionality of Windows Defender, thus it could be disabled, it is just responsible for the icon in the tray.
+
+Otherwise, create a task in the task scheduler to execute it at startup.
+
+Once started, it seems to work correctly, ie it is possible to access the settings menu, and the pieces of information displayed in the icon are correct.
+
+
+Protection updates seem to work, it is possible to check for updates and those got installed without errors.
+
+I also tried to make a quick scan, it executed without errors.
+
+
+==== Windows Updates
+
+I've installed some updates (granted, not many), and did not have any errors.
+Of course, this might depend on the update itself.
+
+=== External programs
+
+Setups where normally downloaded on the host, and copied throughout a shared drive in the guest OS.
+I tend to prefer offline installers, but I've tried to test both the offline and online installer if both were available.
+I did normally not test the x86 version if there was the x64, but I would not expect any difference in behavior.
+All setups were installed with `Run as Administrator`, if possible.
+
+I've mainly checked that
+
+  * Program installs/uninstalls on the machine
+  * Program can be started through the `Run` action
+  * Program is opened correctly through file association (for example pdf reader for `.pdf` files or browser for `.html` files)
+
+==== 7zip
+
+Version: 19.00 (2019-02-21)
+Installer URL: https://www.7-zip.org/download.html (`.exe` and `.msi`)
+(Un)Installation worked correctly: yes (both `.exe` and `.msi`, tested only the x64 version)
+The program starts correctly:
+
+Yes, also all menu entries in explorer seem to work correctly.
+
+==== Adobe Reader DC
+
+Version: 2020.009.20063
+Installer URL: https://acrobat.adobe.com/us/en/acrobat/pdf-reader.html (online installer), https://get.adobe.com/reader/enterprise/ (offline installer)
+(Un)Installation worked correctly: yes (both online and offline installer)
+
+On Program startup, `eula.exe` is opened in notepad, after some time `adobearm.exe` is opened in notepad too.
+When asked about changing the default program for viewing pdf files, `showapppickerforpdf.exe` opens in notepad.
+
+PDF documents are opened correctly.
+
+A possible workaround for the EULA is  to accept the Eula through a policy:
+
+----
+[HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Adobe\Acrobat Reader\DC\AdobeViewer]
+"EULA"=dword:00000001
+----
+
+or execute directly `C:\Program Files (x86)\Adobe\Acrobat Reader DC\Reader\eula.exe` and accept the license.
+
+`adobearm.exe` is for automating updates.
+Thus if it does not start correctly, it should not break any functionalities (except the update functionality).
+
+It is possible to disable it through a policy too:
+
+----
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Adobe\Acrobat Reader\DC\FeatureLockDown]
+"bUpdater"=dword:00000000
+----
+
+Notice that "Adobe Acrobat Update Service" will still get started automatically, I'm not sure what the implications are; if `adobearm.exe` has been disabled.
+Do updates still apply?
+Does the service simply run and do nothing?
+
+To remove any doubt, let's disable the service and the scheduled task too.
+
+----
+Get-Service adobearmservice | Stop-Service -PassThru | Set-Service -StartupType Disabled
+Unregister-ScheduledTask -TaskName "Adobe Acrobat Update Task" -Confirm:$false
+----
+
+As disabling updates can be a security risk (if those are not handled in another way), an end-user might wish to start `adobearm.exe` differently.
+
+Help -> "Check for updates" opens `adobearm.exe`, so upgrading from adobe does not seem to be possible.
+It is possible to execute `C:\Program Files (x86)\Common Files\Adobe\ARM\1.0\AdobeARM.exe` manually, but as there is no indication that there are no updates, or that some updates are found, I guess that it is currently not possible to update adobe, without downloading a newer setup.
+
+==== GIMP
+
+Version: 2.10.20
+Installer URL: https://www.gimp.org/downloads/
+(Un)Installation worked correctly: yes
+
+Program Seems to work correctly
+
+==== Google Chrome and Google Drive
+
+Version: ???
+Installer URL: https://www.google.com/chrome/ (only online installer, offline not found)
+(Un)Installation worked correctly: installation did not work, googleupdate gets opened twice in notepad.
+Executing `C:\Program Files (x86)\Google\Update\GoogleUpdate` by hand did not help.
+
+So far Chrome is the only browser not working.
+The simples workaround is to use Firefox, or one chrome-based browser, as they all seem to install and work correctly.
+
+Otherwise, it is possible to temporarily disable the hardening settings, install chrome, and then reenable them.
+The update process seems to work (not really tested yet).
+
+Notice that the setups of other programs, like google drive (https://www.google.com/intl/de_ALL/drive/download/), seem to have the same issue.
+Unfortunately, the offline installer available at https://dl.google.com/drive/gsync_enterprise64.msi behaves the same way.
+
+At least removing those programs works, even if all update jobs where not delete cleanly (used autoruns to find some leftovers)
+
+==== KeePassXC
+
+Version: 2.5.4
+Installer URL: https://keepassxc.org/download/#windows
+(Un)Installation worked correctly: yes
+
+The program seems to work correctly, also the check for updates seems to work (do not know if those also get installed correctly)
+
+
+
+==== Krita
+
+Version: v4.3.0-prealpha-3002-g689fe924c5
+Installer URL: https://krita.org/en/download/krita-desktop/ (`.exe` from nightly, not the one from the stores)
+(Un)Installation worked correctly: yes
+
+The program seems to work correctly
+
+==== LibreOffice
+
+Version: 6.4.4
+Installer URL: https://www.libreoffice.org/download/download/?type=win-x86_64
+(Un)Installation worked correctly: yes (both `.exe` and `.msi`, tested only the x64)
+But notice that executing Thunderbird from the setup wizard "Launch Mozilla Thunderbird now" does not work.
+The program starts correctly: yes, also release notes open correctly, and it is possible to create, open, and edit documents.
+
+
+During installation, it is possible to check "Load LibreOffice during system startup", but it does not work, similarly to other programs.
+One could execute `C:\Program Files\LibreOffice\program\quickstart.exe` with the task scheduler at login to obtain the desired effect:
+
+----
+$command = 'C:\Program Files\LibreOffice\program\quickstart.exe';
+$action = New-ScheduledTaskAction -Execute $command;
+$trigger = New-ScheduledTaskTrigger -AtLogon;
+$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries;
+Register-ScheduledTask $value -Action $action -Trigger $trigger -Settings $settings;
+----
+
+
+==== Microsoft Teams
+
+Version: ???
+Installer URL: https://www.microsoft.com/en-us/microsoft-365/microsoft-teams/download-app#desktopAppDownloadregion
+(Un)Installation worked correctly: no, the installer apparently calls itself again and opens in notepad.
+Disabling, like for Google Chrome, the hardening settings temporarily permitted me to install the program.
+
+Unfortunately, the program does not even start, internally it calls itself again (just during like the setup phase) and opens in notepad.
+
+So far except for and older version of opera, no other program behaves this way.
+
+The only thing that worked correctly was the uninstallation.
+
+
+==== Mozilla Firefox
+
+Version: 77.0.1
+Installer URL: https://www.mozilla.org/en-US/firefox/all/#product-desktop-release (both `.exe` and `.msi`)
+(Un)Installation worked correctly: yes (both `.exe` and `.msi`, tested only the x64 version)
+But notice that executing Firefox from the setup wizard "Launch Firefox now" does not work.
+The program starts correctly: yes, also webpages load correctly
+
+It seems to verify correctly if there are new versions.
+"Restart with add-ons disabled" correctly restarts the program.
+
+"Use Firefox as my default browser", contrary to adobe reader, opens the corresponding setting in Windows correctly.
+
+
+==== Mozilla Thunderbird
+
+Version: 68.9.0
+Installer URL: https://www.thunderbird.net/download/ (both `.exe` and `.msi`)
+(Un)Installation worked correctly: yes (both `.exe` and `.msi`, tested only the x64)
+But notice that executing Thunderbird from the setup wizard "Launch Mozilla Thunderbird now" does not work.
+The program starts correctly and webpages load correctly
+
+It seems to verify correctly if there are new versions.
+"Restart with add-ons disabled" correctly restarts the program.
+
+"Use Thunderbird as default mail client", opens helper.exe with notepad.
+
+==== Notepad++
+
+Version: 7.8.8
+Installer URL: https://notepad-plus-plus.org/downloads/
+(Un)Installation worked correctly: yes
+
+Program seems to work correctly, but on startup it opens `C:\Program Files (x86)\Notepad++\updater\gup.exe`.
+This can be avoided by disabling automatic updates (also manually checking for updates does not work): "Settings->Preferences->MISC.->Enable Notepad++ auto-updater"
+
+Notice that executing manually `C:\Program Files (x86)\Notepad++\updater\gup.exe` seems to work correctly.
+
+
+Also, the plugin installation procedure does not seem to work correctly, during the installation process explorer gets opened in notepad.
+After opening notepad++ manually the plugin I tried shows in the installed plugin.
+
+
+==== OpenShell
+
+Version:  4.4.142 
+Installer URL: https://github.com/Open-Shell/Open-Shell-Menu/releases
+(Un)Installation worked correctly: yes, but the link in the setup does not work correctly as it opens the browser with notepad.
+
+After the installation finishes, the start menu is correctly replaced.
+After rebooting the system, `C:\Program Files\Open-Shell\StartMenu.exe` opens in notepad, but the start menu is still handled by OpenShell.
+It can thus probably be removed.
+
+OpenShell is recommended to make the start menu usable again, as the native Menu does not permit to execute the `Run` action.
+
+Notice that also in OpenShell it is not always possible to execute the custom `Run` action, and I did not find any setting to change this behavior.
+
+  * clicking a menu entry of the last used programs opens notepad
+  * right-clicking a menu entry does not show the custom run option
+  * after pinning a program ("Pin to Start menu (Open-Shell)"), the custom `Run` option is shown
+  * right-clicking the search result provides the custom run option
+  * after clicking on "all program", there is the custom run option
+
+
+
+==== Opera
+
+Version: 69.0.3686.36
+Installer URL: https://www.opera.com/download
+(Un)Installation worked correctly: yes
+If executed with the `Run` menu entry, then the browser at the end of the installation is started correctly.
+If executer with `Run as administrator`, it gets opened with notepad.
+
+The browser seems to work correctly, it is possible to install extensions and surf the web.
+
+As the "Opera scheduled auto-update" is started from the task scheduler, no changes are necessary.
+
+==== Paint.net
+
+Version: 4.2.12
+Installer URL: https://www.getpaint.net/download.html
+(Un)Installation worked correctly: yes
+
+Program Seems to work correctly
+
+==== Pinta
+
+Version: 1.6
+Installer URL: https://pinta-project.com/pintaproject/pinta/releases
+(Un)Installation worked correctly: yes
+
+Program Seems to work correctly
+
+==== Skype
+
+Version: 8.61.0.87
+Installer URL: http://go.skype.com/windows.desktop.download
+(Un)Installation worked correctly: setup seems to hang, but no notepad window opens.
+So I looked in the task manager and saw that skype spawned a hidden notepad process.
+Killing the notepad process terminates the installation and uninstallation wizard correctly.
+
+The program starts up correctly, I did not log in.
+Of course, also the startup entry of Skype does not Work.
+Either add it to the task scheduler or disable it altogether.
+
+
+==== sumatrapdfreader
+
+Version: 3.2.64
+Installer URL: https://www.sumatrapdfreader.org/download-free-pdf-viewer.html
+(Un)Installation worked correctly: yes
+
+The program seems to work correctly.
+Settings it as default reader from the program itself works.
+Update check works.
+
+
+
+==== Sysinernals
+
+All programs I've tried started successfully, on the first start it was possible to accept the "SYSINTERNALS SOFTWARE LICENSE TERMS".
+The x86 version always loaded the x64 version correctly.
+
+===== Autoruns
+
+Seems to work correctly
+
+===== procexp
+
+File->Run does not work
+File->Run as Administrator works
+File->Run as limited User works
+
+Left-click on the process, restart correctly stops and starts the process again.
+
+"Options->Replace Task Manager" works
+"Process->Check virustotal" seems to work, but the links are not opened in the browser, the browser gets opened in notepad.
+Also "search online" opens the browser in notepad.
+
+==== VeraCrypt
+
+Version: 3.1.1929.45
+Installer URL: https://vivaldi.com/download/
+(Un)Installation worked correctly: yes
+
+The startup, creating and mounting volumes work.
+On the other hand, "auto-mount" seems to hang, after a while it appears the error message that the password might be wrong, or that the file is not a real VeraCrypt volume.
+
+==== Vivaldi
+
+Version: 1.24-update6
+Installer URL: https://www.veracrypt.fr/en/Downloads.html
+(Un)Installation worked correctly: yes
+
+The browser seems to work correctly, it is possible to surf the web, it opens the "Default Apps" correctly.
+
+Vivaldi Update notifier will not work correctly on startup, it is possible to register a new task in the task scheduler.
+
+==== VirtualBox Guest Additions
+
+They do work correctly, except for `VboxTray`, which tries to runs at startup.
+This does not work, so
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+=== Conclusion
+
+Currently many programs I use, and a lot of programs I do not use, seems to work correctly.
+
+Unfortunately, some have some minor quirks, and others are broken beyond repair (at least without source code for the "normal" user).
+
+Worse, there are some pain points in the Windows operating system itself.
+While there is an alternative for the start menu and startup tasks, there are still some paint points, like settings that cannot be opened.
+
+All in all, it might be a nice experiment, especially since the settings are very easy to revert.
+It is sufficient to rename the `run` entry to `open` and the changes apply instantly, without rebooting.
