@@ -56,6 +56,16 @@ In Openshell the new menu entry appears, so it seems to be a good replacement.
 
 Most settings pages, especially those with the Windows Metro interface, seems to work correctly.
 
+An exception is the page where it is possible to remove installed programs.
+From the "Apps & features" page, Windows openend wth different programs `msiexec` with notepad when trying to uninstall them, while from the "old" `Control Panel\Programs\Programs and Features` the uninstaller starts correctly.
+
+Programs like "VeraCrypt", "notepad++" and "7zip" worked, but "LibreOffice", "Adobe Reader" and "KeePassXC" did not.
+The main difference seems to be that programs installed with `.msi` are not handled correctly anymore, while, strangely, programs that used an `.exe` for installing and uninstalling do not have that issue.
+
+For now it seems to be amore safe to alway remove a Program from `Control Panel\Programs\Programs and Features`.
+
+As I noted this issue late, I did not test all other programs too.
+
 ==== Startup Programs
 
 All registry entries, like entries under `HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Run\` do not work correctly anymore.
@@ -76,11 +86,19 @@ Get-Item -Path $key_autoruns  |   Select-Object -ExpandProperty Property |ForEac
 }
 ----
 
-==== Task Manager
+==== File Explorer
 
 "ctrl+shitf+esc" does not work, the task manager opens in notepad.
 "ctrl+alt+canc" works, but selecting "task manager" does not work.
-Changing TaskManager with procexp does not change anything.
+Replacing TaskManager with procexp does not change anything.
+
+"Win+E" opens explorer correclty.
+"Win+R", when entering Path, like '%APPDATA%' open explorer at the correct location.
+"Win+R", when entering an executables, it opens it in notepad instead of executing it.
+"Win+D" works correclty.
+Also Key combinations like "Alt+F4", "Alt+F5" seems ot work correctly.
+
+==== Task Manager
 
 When the task manager is running, "File->Run New Task" does not work.
 Right-click on a running process, search online does not work.
@@ -106,6 +124,8 @@ I also tried to make a quick scan, it executed without errors.
 
 I've installed some updates (granted, not many), and did not have any errors.
 Of course, this might depend on the update itself.
+
+Also updates from the Windows Store seems to work correctly.
 
 === External programs
 
