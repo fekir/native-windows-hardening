@@ -195,6 +195,40 @@ As disabling updates can be a security risk (if those are not handled in another
 Help -> "Check for updates" opens `adobearm.exe`, so upgrading from adobe does not seem to be possible.
 It is possible to execute `C:\Program Files (x86)\Common Files\Adobe\ARM\1.0\AdobeARM.exe` manually, but as there is no indication that there are no updates, or that some updates are found, I guess that it is currently not possible to update adobe, without downloading a newer setup.
 
+==== Audacity
+
+Version: 2.4.2
+Installer URL: https://www.audacityteam.org/download/windows/
+(Un)Installation worked correctly: yes, it even starts audacity correctly after installing it.
+
+The program seems to work correctly.
+
+==== ClamWin
+
+Version: 0.99
+Installer URL: http://www.clamwin.com/content/view/18/46/
+(Un)Installation worked correctly: yes
+
+The program seems to work correctly.
+
+==== CMake
+
+Version: 3.18.0-rc2
+Installer URL: https://cmake.org/download/
+(Un)Installation worked correctly: yes
+
+The program seems to work, mainly tested from QtCreator
+
+
+==== Clementine
+
+Version: 1.3.1
+Installer URL: https://www.clementine-player.org/downloads
+(Un)Installation worked correctly: yes, but it does not start the program correctly after installation finishes
+
+The program seems to work, mainly tested from QtCreator
+
+
 ==== GIMP
 
 Version: 2.10.20
@@ -220,6 +254,24 @@ Notice that the setups of other programs, like google drive (https://www.google.
 Unfortunately, the offline installer available at https://dl.google.com/drive/gsync_enterprise64.msi behaves the same way.
 
 At least removing those programs works, even if all update jobs where not delete cleanly (used autoruns to find some leftovers)
+
+
+==== HandBrake
+
+Version: 1.3.3
+Installer URL: https://handbrake.fr/downloads.php
+(Un)Installation worked correctly: yes
+
+The program seems to work correctly, it can open files and encode them.
+
+==== IrfanView
+
+Version: 4.54
+Installer URL: https://www.irfanview.com/64bit.htm
+(Un)Installation worked correctly: yes, but the installer opens irfanview in notepad and instead of opening the link in the browser it opens the browser in notepad.
+
+The program seems to work correctly.
+
 
 ==== KeePassXC
 
@@ -367,6 +419,18 @@ Installer URL: https://pinta-project.com/pintaproject/pinta/releases
 
 Program Seems to work correctly
 
+
+==== QtCreator
+
+Version: 4.12.3
+Installer URL: https://www.qt.io/offline-installers
+(Un)Installation worked correctly: yes
+
+I've installed it with CMake and Visual Studio in order to use the sdk and compiler from visual studio and CMake as build system.
+
+The Program seems to work.
+I was able to create a new dummy project, compile it, debug it and execute it.
+
 ==== Skype
 
 Version: 8.61.0.87
@@ -422,6 +486,37 @@ Installer URL: https://vivaldi.com/download/
 The startup, creating and mounting volumes work.
 On the other hand, "auto-mount" seems to hang, after a while it appears the error message that the password might be wrong, or that the file is not a real VeraCrypt volume.
 
+==== Visual Studio
+
+Version: ???(2019)
+Installer URL: https://visualstudio.microsoft.com/
+(Un)Installation worked correctly: Partially (and notice that only a small subset of packages for creating a {cpp} hello world program have been installed.).
+During installation it opens winsdksetup.
+Since the installer waits for the process to terminate, it is possible to execute the sdk manually (in this case it was "C:\ProgramData\Microsoft\VisualStudio\Packages\Win10SDK_10.0.18362,version=10.0.18362.0\winsdksetup.exe") after the setup finishes, closing notepad the installation continues.
+Once the installation finishes it opens explorer in notepad. The "Launch" option in the installer always opens explorer in notepad.
+
+
+Short after startup, "C:\program files (x86)\microsoft visual studio\installer\resources\app\ServiceHub\Services\Microsoft.VisualStudio.Setup.Service\BackgroundDownload.exe", opens it in notepad.
+It is possible to disable it in "Tools -> Options -> Environment -> Product Updates"
+
+
+The Program seems to work.
+I was able to create a new dummy project, compile it, debug it and execute it.
+
+==== Visual Studio Code
+
+Version: 1.46.1
+Installer URL: https://code.visualstudio.com/docs/?dv=win64
+(Un)Installation worked correctly: yes
+
+Program seems to work correctly.
+Also actions like installing and updating plugins or opening terminal worked without issues.
+
+==== VirtualBox Guest Additions
+
+They do work correctly, except for `VboxTray`, which tries to runs at startup.
+This does not work, but it is possible to start it wit the task scheduler.
+
 ==== Vivaldi
 
 Version: 1.24-update6
@@ -432,22 +527,21 @@ The browser seems to work correctly, it is possible to surf the web, it opens th
 
 Vivaldi Update notifier will not work correctly on startup, it is possible to register a new task in the task scheduler.
 
-==== VirtualBox Guest Additions
+==== VLC
 
-They do work correctly, except for `VboxTray`, which tries to runs at startup.
-This does not work, so
+Version: 3.0.11
+Installer URL: https://www.videolan.org/vlc/download-windows.html
+(Un)Installation worked correctly: yes, but the option to start vlc at the end of the installation does not work.
 
+The Program seems to work correclty
 
+==== Zoom
 
+Version: ???
+Installer URL: https://zoom.us/support/download
+(Un)Installation worked correctly: yes, but the end of the installation it fails to start zoom. During uninstall it opens cptinsall with notepad, but otherwise the program is removed from the system.
 
-
-
-
-
-
-
-
-
+The program starts correctly and seems to work. I did not join any meeting.
 
 
 
